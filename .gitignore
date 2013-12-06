@@ -1,0 +1,39 @@
+# Created by http://gitignore.io
+
+### PhPStorm ###
+.idea/
+
+### Linux ###
+.*
+!.gitignore
+!.git*
+!.travis.yml
+*~
+
+
+### Windows ###
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+### NetBeans ###
+nbproject/
+build/
+nbbuild/
+dist/
+nbdist/
+nbactions.xml
+nb-configuration.xml
+build.xml
+build.properties
+
+### SysVisor ###
+vendor/
+bin/
+phpunit.xml
