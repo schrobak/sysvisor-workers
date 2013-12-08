@@ -1,7 +1,7 @@
 {
-  "name": "schrobak/sysvisor-workers",
+  "name": "sysvisor/workers",
   "description": "Official SysVisor workers",
-  "keywords": ["sysvisor", "worker"],
+  "keywords": ["sysvisor", "worker", "pulse"],
   "type": "library",
   "license": "MIT",
   "minimum-stability": "stable",
@@ -12,17 +12,13 @@
     }
   ],
   "require": {
-    "php": ">=5.3.3"
+    "php": ">=5.4"
   },
   "require-dev": {
     "phpunit/phpunit": "~3.7.28",
-    "phpunit/php-invoker": "~1.1.3",
-    "satooshi/php-coveralls": "dev-master"
+    "phpunit/php-invoker": "~1.1.3"
   },
   "autoload": {
     "psr-0": {"Sysvisor": "src/"}
-  },
-  "config": {
-    "bin-dir": "bin"
   }
 }
