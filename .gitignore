@@ -35,5 +35,5 @@ build.properties
 
 ### SysVisor ###
 vendor/
-bin/
+composer.lock
 phpunit.xml
