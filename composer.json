@@ -1,31 +1,31 @@
 {
-  "name": "sysvisor/workers",
-  "description": "Official SysVisor workers",
-  "keywords": ["sysvisor", "worker", "pulse"],
-  "type": "library",
-  "license": "MIT",
-  "minimum-stability": "stable",
-  "authors": [
-    {
-      "name": "Sławomir Chrobak",
-      "email": "slawomir.chrobak@gmail.com"
+    "name": "sysvisor/workers",
+    "description": "Official SysVisor workers",
+    "keywords": ["sysvisor", "worker", "pulse"],
+    "type": "library",
+    "license": "MIT",
+    "minimum-stability": "stable",
+    "authors": [
+        {
+            "name": "Sławomir Chrobak",
+            "email": "slawomir.chrobak@gmail.com"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "git",
+            "url": "https://github.com/schrobak/sysvisor-worker-sdk"
+        }
+    ],
+    "require": {
+        "php": ">=5.4",
+        "sysvisor/worker-sdk": "dev-master"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~3.7.28",
+        "phpunit/php-invoker": "~1.1.3"
+    },
+    "autoload": {
+        "psr-0": {"Sysvisor": "src/"}
     }
-  ],
-  "repositories": [
-    {
-      "type": "git",
-      "url": "https://github.com/schrobak/sysvisor-worker-sdk"
-    }
-  ],
-  "require": {
-    "php": ">=5.4",
-    "sysvisor/worker-sdk": "dev-master"
-  },
-  "require-dev": {
-    "phpunit/phpunit": "~3.7.28",
-    "phpunit/php-invoker": "~1.1.3"
-  },
-  "autoload": {
-    "psr-0": {"Sysvisor": "src/"}
-  }
 }
