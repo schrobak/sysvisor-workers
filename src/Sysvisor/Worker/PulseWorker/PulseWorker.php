@@ -2,14 +2,17 @@
 
 namespace Sysvisor\Worker\PulseWorker;
 
-use Sysvisor\Worker\AbstractWorker;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
+use Sysvisor\Sdk\Logger\LoggerAwareInterface;
+use Sysvisor\Sdk\Worker\WorkerInterface;
 use Sysvisor\Worker\PulseWorker\Config\PulseConfig;
 use Zend\Uri\Exception\InvalidUriException;
 use Zend\Uri\Uri;
 use Zend\XmlRpc\Client;
 use Psr\Log\LogLevel;
 
-class PulseWorker extends AbstractWorker
+class PulseWorker implements WorkerInterface, LoggerAwareInterface
 {
     /**
      * @var PulseConfig
@@ -20,6 +23,11 @@ class PulseWorker extends AbstractWorker
      * @var string
      */
     private $timestamp = '';
+
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
 
     public function __construct($uri)
     {
@@ -42,7 +50,7 @@ class PulseWorker extends AbstractWorker
         return $this->timestamp;
     }
 
-    protected function execute()
+    public function execute()
     {
         try {
             $server = new Client($this->config['url']);
@@ -55,12 +63,36 @@ class PulseWorker extends AbstractWorker
 
             $proxy->RemoteApi->logout($token);
 
-            $this->log(LogLevel::DEBUG, 'Pulse projects.', array('projects' => count($data['projects'])));
+            $this->logger->log(LogLevel::DEBUG, 'Pulse projects.', array('projects' => count($data['projects'])));
         } catch (\Exception $e) {
-            $this->log(LogLevel::ERROR, 'Error occurred.', array(
+            $this->logger->log(LogLevel::ERROR, 'Error occurred.', array(
                 'exception' => $e->getMessage()
             ));
         }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setLogger(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getLogHandler()
+    {
+        return new NullLogger();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getName()
+    {
+        return 'pulse';
     }
 
     /**

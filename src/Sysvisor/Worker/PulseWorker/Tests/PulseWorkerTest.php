@@ -22,10 +22,8 @@ class PulseWorkerTest extends \PHPUnit_Framework_TestCase
      */
     public function runWorker()
     {
-        $this->markTestIncomplete('Change according to long running process implementation.');
         $worker = new PulseWorker('http://schrobak:xdev1234@pulse.int.x-formation.com/xmlrpc');
-        $result = $worker->run();
-
-        $this->assertCount(38, $result);
+        $worker->execute();
+        $this->markTestIncomplete('Missing assertion');
     }
 }
