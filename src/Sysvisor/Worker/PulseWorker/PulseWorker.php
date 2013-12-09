@@ -2,8 +2,8 @@
 
 namespace Sysvisor\Worker\PulseWorker;
 
+use Monolog\Handler\NullHandler;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 use Sysvisor\Sdk\Logger\LoggerAwareInterface;
 use Sysvisor\Sdk\Worker\WorkerInterface;
 use Sysvisor\Worker\PulseWorker\Config\PulseConfig;
@@ -28,11 +28,6 @@ class PulseWorker implements WorkerInterface, LoggerAwareInterface
      * @var LoggerInterface
      */
     private $logger;
-
-    public function __construct($uri)
-    {
-        $this->config = $this->parseUri($uri);
-    }
 
     /**
      * @param string $timestamp
@@ -84,7 +79,7 @@ class PulseWorker implements WorkerInterface, LoggerAwareInterface
      */
     public function getLogHandler()
     {
-        return new NullLogger();
+        return new NullHandler();
     }
 
     /**
@@ -100,7 +95,7 @@ class PulseWorker implements WorkerInterface, LoggerAwareInterface
      * @throws \Zend\Uri\Exception\InvalidUriException
      * @return PulseConfig
      */
-    private function parseUri($uri)
+    public function parseUri($uri)
     {
         $uri = new Uri($uri);
 
@@ -115,6 +110,8 @@ class PulseWorker implements WorkerInterface, LoggerAwareInterface
             'url'       => sprintf('%s://%s%s', $uri->getScheme(), $uri->getHost(), $uri->getPath())
         );
 
-        return new PulseConfig($options);
+        $this->config = new PulseConfig($options);
+
+        return $this->config;
     }
 }
