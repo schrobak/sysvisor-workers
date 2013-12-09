@@ -2,7 +2,7 @@
 
 namespace Sysvisor\Worker\PulseWorker;
 
-use Monolog\Handler\NullHandler;
+use Monolog\Handler\RotatingFileHandler;
 use Psr\Log\LoggerInterface;
 use Sysvisor\Sdk\Logger\LoggerAwareInterface;
 use Sysvisor\Sdk\Worker\WorkerInterface;
@@ -79,7 +79,7 @@ class PulseWorker implements WorkerInterface, LoggerAwareInterface
      */
     public function getLogHandler()
     {
-        return new NullHandler();
+        return new RotatingFileHandler($this->getName() . '_worker');
     }
 
     /**
