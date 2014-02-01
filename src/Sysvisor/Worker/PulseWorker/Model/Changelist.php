@@ -10,13 +10,15 @@
 
 namespace Sysvisor\Worker\PulseWorker\Model;
 
+use Sysvisor\Worker\PulseWorker\Converter\Convertable;
+
 /**
  * Class Changelist
  *
  * @author Sławomir Chrobak <slawomir.chrobak@gmail.com>
  * @package Sysvisor\Worker\PulseWorker\Model
  */
-class Changelist
+final class Changelist implements Convertable
 {
     /**
      * @var string
@@ -36,7 +38,7 @@ class Changelist
     /**
      * @var \DateTime
      */
-    private $date;
+    private $dateTime;
 
     /**
      * @param string $author
@@ -57,9 +59,9 @@ class Changelist
     /**
      * @param \DateTime $date
      */
-    public function setDate(\DateTime $date)
+    public function setDateTime(\DateTime $date)
     {
-        $this->date = $date;
+        $this->dateTime = $date;
     }
 
     /**
