@@ -24,7 +24,9 @@ class PulseWorkerTest extends \PHPUnit_Framework_TestCase
      */
     public function execute()
     {
-        $worker = new PulseWorker($url, $username, $password);
+        $config = [];
+
+        $worker = new PulseWorker($config);
         $response = $worker->execute();
 
         $this->assertTrue($response->isSuccessful());

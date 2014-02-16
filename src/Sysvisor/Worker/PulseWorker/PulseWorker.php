@@ -2,12 +2,13 @@
 
 namespace Sysvisor\Worker\PulseWorker;
 
+use Guzzle\Common\Event;
+use Guzzle\Http\Client;
 use Sysvisor\Sdk\Worker\WorkerInterface;
 use Sysvisor\Worker\PulseWorker\Converter\ArrayConverter;
 use Sysvisor\Worker\PulseWorker\Model\Build;
 use Sysvisor\Worker\PulseWorker\Model\Changelist;
 use Sysvisor\Worker\PulseWorker\Model\TestsSummary;
-use Zend\XmlRpc\Client;
 
 class PulseWorker implements WorkerInterface
 {
@@ -26,12 +27,41 @@ class PulseWorker implements WorkerInterface
      */
     private $token;
 
-    public function __construct($url, $username, $password)
-    {
-        $server = new Client($url);
-        $this->proxy = $server->getProxy();
+    /**
+     * @var \Guzzle\Http\Client
+     */
+    private $client;
 
-        $this->token = $this->proxy->RemoteApi->login($username, $password);
+    /**
+     * @var string
+     */
+    private $accessToken = '';
+
+    /**
+     * @var string
+     */
+    private $refreshToken = '';
+
+    /**
+     * @var array
+     */
+    private $config;
+
+    /**
+     * @param array $config
+     */
+    public function __construct(array $config)
+    {
+        $this->config = $config;
+
+        $workerConfig = $this->getClient()
+            ->get('http://api.sysvisor.dev/workers/' . $config['id'])
+            ->send()
+            ->json();
+
+        $this->proxy = (new \Zend\XmlRpc\Client($workerConfig['worker']['configuration']['url']))->getProxy();
+
+        $this->token = $this->proxy->RemoteApi->login($config['username'], $config['password']);
     }
 
     /**
@@ -71,9 +101,7 @@ class PulseWorker implements WorkerInterface
 
         $this->proxy->RemoteApi->logout($this->token);
 
-        $client = new \Guzzle\Http\Client();
-        $request = $client->post('http://api.sysvisor.dev/tools/pulse', null, $builds);
-        $request->setHeader('Authorization', 'Bearer Nzg2YmNkODY2OTc0ZTY1YjhlZDc5NzI5MzE0ZGU2ZmY1ZTBlMGM1MDdiNTllNzE4MDI5OGI0YTAzNTgyNWJiYg');
+        $request = $this->getClient()->post('http://api.sysvisor.dev/tools/pulse', null, $builds);
 
         return $request->send();
     }
@@ -174,5 +202,60 @@ class PulseWorker implements WorkerInterface
         }
 
         return $build;
+    }
+
+    /**
+     * @return \Guzzle\Http\Client
+     */
+    private function getClient()
+    {
+        if (null === $this->client) {
+            $client = new Client();
+            $client->getEventDispatcher()->addListener('request.before_send', function(Event $event) {
+                $event['request']->setHeader('Authorization', 'Bearer ' . $this->accessToken);
+            });
+
+            $key = $this->config['key'];
+            $secret = $this->config['secret'];
+
+            $client->getEventDispatcher()->addListener('request.sent', function(Event $event) use ($key, $secret) {
+                /** @var \Guzzle\Http\Message\Request $request */
+                $request = $event['request'];
+                /** @var \Guzzle\Http\Message\Response $response */
+                $response = $event['response'];
+
+                if (401 == $response->getStatusCode()) {
+                    $client = new Client();
+
+                    $data = $response->json();
+                    if (array_key_exists('error', $data) && $data['error'] == 'invalid_token') {
+                        $body = [
+                            'grant_type' => 'refresh_token',
+                            'refresh_token' => $this->refreshToken
+                        ];
+                    } else {
+                        $body = ['grant_type' => 'client_credentials'];
+                    }
+
+                    $tokenRequest = $client->post('http://api.sysvisor.dev/oauth/v2/token', null, $body);
+                    $tokenRequest->setAuth($key, $secret);
+                    $authResponse = $tokenRequest->send();
+
+                    if ($authResponse->isSuccessful()) {
+                        $data = $authResponse->json();
+                        $this->accessToken = $data['access_token'];
+                        $this->refreshToken = $data['refresh_token'];
+
+                        return $request->send();
+                    } else {
+                        return $response;
+                    }
+                }
+            });
+
+            $this->client = $client;
+        }
+
+        return $this->client;
     }
 }
