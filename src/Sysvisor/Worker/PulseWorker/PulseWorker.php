@@ -60,8 +60,6 @@ class PulseWorker implements WorkerInterface
             ->json();
 
         $this->proxy = (new \Zend\XmlRpc\Client($workerConfig['worker']['configuration']['url']))->getProxy();
-
-        $this->token = $this->proxy->RemoteApi->login($config['username'], $config['password']);
     }
 
     /**
@@ -86,6 +84,8 @@ class PulseWorker implements WorkerInterface
 
     public function execute()
     {
+        $this->token = $this->proxy->RemoteApi->login($this->config['username'], $this->config['password']);
+
         $builds = [];
         foreach ($this->getAllProjects() as $project) {
             if ($project['inProgress']) {
@@ -100,6 +100,7 @@ class PulseWorker implements WorkerInterface
         }
 
         $this->proxy->RemoteApi->logout($this->token);
+        $this->token = null;
 
         $request = $this->getClient()->post('http://api.sysvisor.dev/tools/pulse', null, $builds);
 
