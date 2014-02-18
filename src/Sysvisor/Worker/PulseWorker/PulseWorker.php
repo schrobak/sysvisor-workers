@@ -86,7 +86,7 @@ class PulseWorker implements WorkerInterface
         foreach ($projects as $id => $maps) {
             foreach ($maps as $name) {
                 $build = $this->proxy->RemoteApi->getLatestBuildForProject($this->token, $name, false);
-                $parsed = $this->parseBuild($build);
+                $parsed = $this->parseBuild($build[0]);
                 $requests[] = $this->getClient()->post("http://api.sysvisor.dev/projects/$id", null, $parsed);
             }
         }
@@ -270,7 +270,7 @@ class PulseWorker implements WorkerInterface
             $maps = [];
             foreach ($projects as $project) {
                 foreach ($project['projectIds'] as $id) {
-                    $maps[$project['id']][$id] = $this->proxy->MonitorApi->getProjectNameById($this->token, $id);
+                    $maps[$project['id']][$id] = $this->proxy->RemoteApi->getProjectNameById($this->token, (string) $id);
                 }
             }
 
