@@ -94,9 +94,7 @@ class PulseWorker implements WorkerInterface
         $this->proxy->RemoteApi->logout($this->token);
         $this->token = null;
 
-        $request = $this->getClient()->send($requests);
-
-        return $request->send();
+        return $this->getClient()->send($requests);
     }
 
     /**
