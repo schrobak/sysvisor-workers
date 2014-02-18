@@ -19,6 +19,8 @@
     ],
     "require": {
         "php": ">=5.4",
+        "ext-apc": "*",
+        "ext-apcu": "*",
         "sysvisor/worker-sdk": "dev-master",
         "zendframework/zend-xmlrpc": "~2.2.5",
         "monolog/monolog": "~1.7",

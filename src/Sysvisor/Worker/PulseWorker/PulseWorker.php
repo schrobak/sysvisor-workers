@@ -45,21 +45,15 @@ class PulseWorker implements WorkerInterface
     /**
      * @var array
      */
-    private $config;
+    private $localConfig;
 
     /**
-     * @param array $config
+     * @param array $localConfig
      */
-    public function __construct(array $config)
+    public function __construct(array $localConfig)
     {
-        $this->config = $config;
-
-        $workerConfig = $this->getClient()
-            ->get('http://api.sysvisor.dev/workers/' . $config['id'])
-            ->send()
-            ->json();
-
-        $this->proxy = (new \Zend\XmlRpc\Client($workerConfig['worker']['configuration']['url']))->getProxy();
+        $this->localConfig = $localConfig;
+        $this->proxy = (new \Zend\XmlRpc\Client($this->getConfiguration()['configuration']['endpoint']))->getProxy();
     }
 
     /**
@@ -84,25 +78,23 @@ class PulseWorker implements WorkerInterface
 
     public function execute()
     {
-        $this->token = $this->proxy->RemoteApi->login($this->config['username'], $this->config['password']);
+        $this->token = $this->proxy->RemoteApi->login($this->localConfig['username'], $this->localConfig['password']);
 
-        $builds = [];
-        foreach ($this->getAllProjects() as $project) {
-            if ($project['inProgress']) {
-                $parsed = $this->parseBuilds($project['inProgress']);
-            } elseif ($project['completedSince']) {
-                $parsed = $this->parseBuilds($project['completedSince']);
-            } else {
-                $parsed = $this->parseBuilds([$project['latestCompleted']]);
+        $projects = $this->getProjects();
+        $requests = [];
+
+        foreach ($projects as $id => $maps) {
+            foreach ($maps as $name) {
+                $build = $this->proxy->RemoteApi->getLatestBuildForProject($this->token, $name, false);
+                $parsed = $this->parseBuild($build);
+                $requests[] = $this->getClient()->post("http://api.sysvisor.dev/projects/$id", null, $parsed);
             }
-
-            $builds[] = $parsed;
         }
 
         $this->proxy->RemoteApi->logout($this->token);
         $this->token = null;
 
-        $request = $this->getClient()->post('http://api.sysvisor.dev/tools/pulse', null, $builds);
+        $request = $this->getClient()->send($requests);
 
         return $request->send();
     }
@@ -115,35 +107,22 @@ class PulseWorker implements WorkerInterface
         return 'pulse';
     }
 
-    private function getAllProjects()
-    {
-        $data = $this->proxy->MonitorApi->getStatusForAllProjects($this->token, false, $this->getTimestamp());
-        $this->setTimestamp($data['timestamp']);
-
-        return $data['projects'];
-    }
-
-    private function parseBuilds(array $data)
+    private function parseBuild(array $data)
     {
         $converter = new ArrayConverter();
-        $builds = [];
-        foreach ($data as $buildData) {
-            $build = $this->createBuild($buildData);
+        $build = $this->createBuild($data);
 
-            $changes = $this->proxy->RemoteApi->getChangesInBuild($this->token, $build->getProjectName(), $build->getNumber());
+        $changes = $this->proxy->RemoteApi->getChangesInBuild($this->token, $build->getProjectName(), $build->getNumber());
 
-            $changelists = [];
-            foreach ($changes as $change) {
-                $changelists[] = $this->createChangelist($change);
-            }
-
-            $build->setTestsSummary($this->createTestSummary($buildData['tests']));
-            $build->setChangelists($changelists);
-
-            $builds[] = $converter->convert($build);
+        $changelists = [];
+        foreach ($changes as $change) {
+            $changelists[] = $this->createChangelist($change);
         }
 
-        return $builds;
+        $build->setTestsSummary($this->createTestSummary($data['tests']));
+        $build->setChangelists($changelists);
+
+        return $converter->convert($build);
     }
 
     /**
@@ -216,8 +195,8 @@ class PulseWorker implements WorkerInterface
                 $event['request']->setHeader('Authorization', 'Bearer ' . $this->accessToken);
             });
 
-            $key = $this->config['key'];
-            $secret = $this->config['secret'];
+            $key = $this->localConfig['key'];
+            $secret = $this->localConfig['secret'];
 
             $client->getEventDispatcher()->addListener('request.sent', function(Event $event) use ($key, $secret) {
                 /** @var \Guzzle\Http\Message\Request $request */
@@ -258,5 +237,46 @@ class PulseWorker implements WorkerInterface
         }
 
         return $this->client;
+    }
+
+    /**
+     * @return array
+     */
+    private function getConfiguration()
+    {
+        if (!apc_exists('config')) {
+            $config = $this->getClient()
+                ->get('http://api.sysvisor.dev/workers/me')
+                ->send()
+                ->json();
+
+            apc_store('config', $config, 60);
+        }
+
+        return apc_fetch('config');
+    }
+
+    /**
+     * @return array
+     */
+    private function getProjects()
+    {
+        if (!apc_exists('projects')) {
+            $projects = $this->getClient()
+                ->get('http://api.sysvisor.dev/projects')
+                ->send()
+                ->json();
+
+            $maps = [];
+            foreach ($projects as $project) {
+                foreach ($project['projectIds'] as $id) {
+                    $maps[$project['id']][$id] = $this->proxy->MonitorApi->getProjectNameById($this->token, $id);
+                }
+            }
+
+            apc_store('projects', $maps, 60);
+        }
+
+        return apc_fetch('projects');
     }
 }
