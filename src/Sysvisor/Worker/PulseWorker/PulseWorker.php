@@ -203,7 +203,7 @@ class PulseWorker implements WorkerInterface
                 $response = $event['response'];
 
                 if (401 == $response->getStatusCode()) {
-                    $client = new Client();
+                    $client = new Client($this->localConfig['baseUrl']);
 
                     $data = $response->json();
                     if (array_key_exists('error', $data) && $data['error'] == 'invalid_token') {
