@@ -87,7 +87,7 @@ class PulseWorker implements WorkerInterface
             foreach ($maps as $name) {
                 $build = $this->proxy->RemoteApi->getLatestBuildForProject($this->token, $name, false);
                 $parsed = $this->parseBuild($build[0]);
-                $requests[] = $this->getClient()->post("http://api.sysvisor.dev/projects/$id", null, $parsed);
+                $requests[] = $this->getClient()->post("/projects/$id", null, $parsed);
             }
         }
 
@@ -188,7 +188,7 @@ class PulseWorker implements WorkerInterface
     private function getClient()
     {
         if (null === $this->client) {
-            $client = new Client();
+            $client = new Client($this->localConfig['baseUrl']);
             $client->getEventDispatcher()->addListener('request.before_send', function(Event $event) {
                 $event['request']->setHeader('Authorization', 'Bearer ' . $this->accessToken);
             });
@@ -215,7 +215,7 @@ class PulseWorker implements WorkerInterface
                         $body = ['grant_type' => 'client_credentials'];
                     }
 
-                    $tokenRequest = $client->post('http://api.sysvisor.dev/oauth/v2/token', null, $body);
+                    $tokenRequest = $client->post('/oauth/v2/token', null, $body);
                     $tokenRequest->setAuth($key, $secret);
                     $authResponse = $tokenRequest->send();
 
@@ -244,7 +244,7 @@ class PulseWorker implements WorkerInterface
     {
         if (!apc_exists('config')) {
             $config = $this->getClient()
-                ->get('http://api.sysvisor.dev/workers/me')
+                ->get('/workers/me')
                 ->send()
                 ->json();
 
@@ -261,7 +261,7 @@ class PulseWorker implements WorkerInterface
     {
         if (!apc_exists('projects')) {
             $projects = $this->getClient()
-                ->get('http://api.sysvisor.dev/projects')
+                ->get('/projects')
                 ->send()
                 ->json();
 
